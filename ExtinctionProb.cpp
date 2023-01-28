@@ -2,7 +2,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <list>
 #include <cmath>
 #include <random>
 #include <utility>
@@ -331,8 +330,9 @@ struct Parameters {
 	std::ofstream* out;
 };
 
-// Function that we will run concurrently
-void concurrent_function(const Parameters& param) {
+// Function that we will run concurrently to get the extinction probability
+// for a given value of the parameters.
+void concurrent_measure(const Parameters& param) {
 	const double TMAX = 0.2*param.L*param.L;
 
 	Game2D sim(param.L, param.M);
@@ -365,15 +365,17 @@ int main() {
 	double exponent;
 	std::ofstream fout("ExtinctionProb_L_" + std::to_string(L) + ".txt");
 
-	function_thread_pool<Parameters> Pool(concurrent_function, 4);
+	// We create a thread pool to run our code concurrently
+	function_thread_pool<Parameters> Pool(concurrent_measure, 4);
 
-	// Values of mobility where we want to measure
+	// Loop that sends the values of mobility where we want to measure
 	exponent = -6.;
 	while (exponent < -2.95) {
 		Pool.submit(Parameters(N_trials, L, 3*std::pow(10, exponent), &fout));
 		exponent += 0.1;
 	}
 
+	// We wait for the queue of our pool to get empty
 	Pool.wait();
 
 	return 0;
